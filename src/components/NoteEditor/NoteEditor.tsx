@@ -158,7 +158,7 @@ export function NoteEditor({
   // Auto-insert images shared via Web Share Target API
   useShareTarget(onImageDrop ? handleFileInput : undefined, isEditable);
 
-  const { definitions, addHabit, renameHabit } =
+  const { definitions, addHabit, removeHabit, renameHabit } =
     useHabitDefinitions(habits, onHabitChange);
 
   const handleHabitChange = useCallback(
@@ -177,6 +177,7 @@ export function NoteEditor({
         isEditable={isEditable}
         onAddHabit={addHabit}
         onRenameHabit={renameHabit}
+        onRemoveHabit={removeHabit}
       />
     ) : null;
 

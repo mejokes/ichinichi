@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { FocusEvent, KeyboardEvent } from "react";
 import type { HabitDefinition, HabitValues } from "../../types";
 import { HabitField } from "./HabitField";
 import styles from "./HabitTracker.module.css";
@@ -11,6 +11,7 @@ interface HabitTrackerProps {
   isEditable: boolean;
   onAddHabit: (name: string) => void;
   onRenameHabit: (id: string, name: string) => void;
+  onRemoveHabit: (id: string) => void;
 }
 
 export function HabitTracker({
@@ -20,6 +21,7 @@ export function HabitTracker({
   isEditable,
   onAddHabit,
   onRenameHabit,
+  onRemoveHabit,
 }: HabitTrackerProps) {
   const [newHabitName, setNewHabitName] = useState("");
 
@@ -52,6 +54,12 @@ export function HabitTracker({
     [handleAddHabit],
   );
 
+  const scrollIntoView = useCallback((e: FocusEvent<HTMLInputElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 300);
+  }, []);
+
   if (definitions.length === 0 && !isEditable) {
     return null;
   }
@@ -66,6 +74,7 @@ export function HabitTracker({
             value={values?.[def.id]?.value ?? ""}
             onChange={(v) => handleFieldChange(def.id, v)}
             onRename={(name) => onRenameHabit(def.id, name)}
+            onRemove={() => onRemoveHabit(def.id)}
             isEditable={isEditable}
           />
         ))}
@@ -77,6 +86,7 @@ export function HabitTracker({
               onChange={(e) => setNewHabitName(e.target.value)}
               onKeyDown={handleAddKeyDown}
               onBlur={handleAddHabit}
+              onFocus={scrollIntoView}
               placeholder="+ Add habit"
               className={styles.addInput}
             />
