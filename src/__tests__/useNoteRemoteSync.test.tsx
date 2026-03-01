@@ -216,4 +216,122 @@ describe("useNoteRemoteSync", () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(onRemoteUpdate).not.toHaveBeenCalled();
   });
+
+  it("retries refresh when previous refresh returned null", async () => {
+    const repository = createRepository();
+    const onRemoteUpdate = jest.fn();
+
+    // First refresh returns null (no remote note found)
+    (repository.refreshNote as jest.Mock).mockResolvedValueOnce(ok(null));
+
+    const { result } = renderHook(() =>
+      useNoteRemoteSync("10-01-2026", repository, {
+        onRemoteUpdate,
+        localContent: "local",
+        hasLocalEdits: false,
+        isLocalReady: true,
+      }),
+    );
+
+    // Wait for first refresh attempt (returns null → REFRESH_DONE, no markRefreshed)
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(1),
+    );
+
+    // onRemoteUpdate should not have been called
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onRemoteUpdate).not.toHaveBeenCalled();
+
+    // Force refresh should retry since date was NOT marked as refreshed
+    (repository.refreshNote as jest.Mock).mockResolvedValueOnce(
+      ok({ date: "10-01-2026", content: "remote-content" }),
+    );
+
+    act(() => {
+      result.current.forceRefresh();
+    });
+
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(onRemoteUpdate).toHaveBeenCalledWith("remote-content"),
+    );
+  });
+
+  it("retries refresh when previous refresh errored", async () => {
+    const repository = createRepository();
+    const onRemoteUpdate = jest.fn();
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+
+    // First refresh throws an error
+    (repository.refreshNote as jest.Mock).mockRejectedValueOnce(
+      new Error("network error"),
+    );
+
+    const { result } = renderHook(() =>
+      useNoteRemoteSync("10-01-2026", repository, {
+        onRemoteUpdate,
+        localContent: "local",
+        hasLocalEdits: false,
+        isLocalReady: true,
+      }),
+    );
+
+    // Wait for first refresh attempt (error → REFRESH_DONE, no markRefreshed)
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(1),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onRemoteUpdate).not.toHaveBeenCalled();
+
+    // Force refresh should retry since date was NOT marked as refreshed
+    (repository.refreshNote as jest.Mock).mockResolvedValueOnce(
+      ok({ date: "10-01-2026", content: "remote-content" }),
+    );
+
+    act(() => {
+      result.current.forceRefresh();
+    });
+
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(onRemoteUpdate).toHaveBeenCalledWith("remote-content"),
+    );
+
+    consoleSpy.mockRestore();
+  });
+
+  it("does not auto-retry on INPUTS_CHANGED after successful refresh", async () => {
+    const repository = createRepository();
+    const onRemoteUpdate = jest.fn();
+
+    const { rerender } = renderHook(
+      ({ localContent }) =>
+        useNoteRemoteSync("10-01-2026", repository, {
+          onRemoteUpdate,
+          localContent,
+          hasLocalEdits: false,
+          isLocalReady: true,
+        }),
+      { initialProps: { localContent: "local" } },
+    );
+
+    // Wait for initial refresh to complete with REMOTE_REFRESHED (marks refreshed)
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() => expect(onRemoteUpdate).toHaveBeenCalled());
+
+    (repository.refreshNote as jest.Mock).mockClear();
+
+    // Trigger INPUTS_CHANGED — should NOT re-refresh since date is marked
+    rerender({ localContent: "remote-content" });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(repository.refreshNote).not.toHaveBeenCalled();
+  });
 });

@@ -11,7 +11,7 @@ import {
 import type { UnifiedSyncedNoteRepository } from "../domain/notes/hydratingSyncedNoteRepository";
 import type { NoteRepository } from "../storage/noteRepository";
 import type { ImageRepository } from "../storage/imageRepository";
-import type { HabitValues } from "../types";
+import { SyncStatus, type HabitValues } from "../types";
 import { AppMode } from "./useAppMode";
 import { createHydratingSyncedNoteRepository } from "../domain/notes/hydratingSyncedNoteRepository";
 import { createRemoteNotesGateway } from "../storage/remoteNotesGateway";
@@ -225,6 +225,22 @@ export function useNoteRepository({
     isOfflineStub,
     forceRefresh,
   } = useNoteContent(date, repository, hasNote, handleAfterSave);
+
+  // After background sync completes, refresh current note to pick up any pulled data
+  const prevSyncStatusRef = useRef(syncStatus);
+  useEffect(() => {
+    const prev = prevSyncStatusRef.current;
+    prevSyncStatusRef.current = syncStatus;
+    if (
+      prev !== syncStatus &&
+      syncStatus === SyncStatus.Synced &&
+      date &&
+      !hasEdits &&
+      isContentReady
+    ) {
+      forceRefresh();
+    }
+  }, [syncStatus, date, hasEdits, isContentReady, forceRefresh]);
 
   // When a realtime update arrives for the current note and user isn't editing, refresh content
   useEffect(() => {

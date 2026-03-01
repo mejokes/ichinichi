@@ -87,6 +87,7 @@ type RemoteSyncEvent =
     }
   | { type: "REMOTE_CACHE_READY"; date: string; hasRemote: boolean }
   | { type: "REMOTE_REFRESHED"; content: string }
+  | { type: "REFRESH_DONE" }
   | { type: "CHECK_DONE" }
   | { type: "CLEAR_PENDING_REMOTE" }
   | { type: "FORCE_REFRESH" };
@@ -160,26 +161,39 @@ const remoteRefresh = fromCallback(
     const refresh = async () => {
       try {
         if (!canRefresh(input.repository)) {
+          if (!cancelled) sendBack({ type: "REFRESH_DONE" });
           return;
         }
         const remoteResult = await input.repository.refreshNote(input.date);
         if (cancelled) return;
         const remoteNote = unwrapRefreshResult(remoteResult);
-        if (!remoteNote) return;
+        if (!remoteNote) {
+          sendBack({ type: "REFRESH_DONE" });
+          return;
+        }
 
         if (hasPendingOps(input.repository)) {
           const hasPending = await input.repository.hasPendingOp(input.date);
-          if (hasPending) return;
+          if (hasPending) {
+            if (!cancelled) sendBack({ type: "REFRESH_DONE" });
+            return;
+          }
         }
 
-        if (input.hasLocalEdits) return;
+        if (input.hasLocalEdits) {
+          sendBack({ type: "REFRESH_DONE" });
+          return;
+        }
 
         const remoteContent = remoteNote.content ?? "";
         if (remoteContent !== input.localContent) {
           sendBack({ type: "REMOTE_REFRESHED", content: remoteContent });
+        } else {
+          sendBack({ type: "REFRESH_DONE" });
         }
       } catch (error) {
         console.error("Failed to refresh note from remote:", error);
+        if (!cancelled) sendBack({ type: "REFRESH_DONE" });
       }
     };
 
@@ -331,7 +345,6 @@ const remoteSyncMachine = setup({
       },
     },
     refreshing: {
-      entry: "markRefreshed",
       invoke: {
         id: "remoteRefresh",
         src: "remoteRefresh",
@@ -345,7 +358,10 @@ const remoteSyncMachine = setup({
       on: {
         REMOTE_REFRESHED: {
           target: "idle",
-          actions: "setPendingRemoteContent",
+          actions: ["setPendingRemoteContent", "markRefreshed"],
+        },
+        REFRESH_DONE: {
+          target: "idle",
         },
         INPUTS_CHANGED: {
           target: "decide",
