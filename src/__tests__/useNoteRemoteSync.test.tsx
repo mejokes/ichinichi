@@ -233,7 +233,7 @@ describe("useNoteRemoteSync", () => {
       }),
     );
 
-    // Wait for first refresh attempt (returns null → REFRESH_DONE, no markRefreshed)
+    // Wait for first refresh attempt (returns null → REFRESH_SKIPPED, no markRefreshed)
     await waitFor(() =>
       expect(repository.refreshNote).toHaveBeenCalledTimes(1),
     );
@@ -278,7 +278,7 @@ describe("useNoteRemoteSync", () => {
       }),
     );
 
-    // Wait for first refresh attempt (error → REFRESH_DONE, no markRefreshed)
+    // Wait for first refresh attempt (error → REFRESH_SKIPPED, no markRefreshed)
     await waitFor(() =>
       expect(repository.refreshNote).toHaveBeenCalledTimes(1),
     );
@@ -303,6 +303,50 @@ describe("useNoteRemoteSync", () => {
     );
 
     consoleSpy.mockRestore();
+  });
+
+  it("retries on INPUTS_CHANGED after refresh returned null (no markRefreshed)", async () => {
+    const repository = createRepository();
+    const onRemoteUpdate = jest.fn();
+
+    // First refresh returns null (server has no note, or error unwrapped to null)
+    (repository.refreshNote as jest.Mock).mockResolvedValueOnce(ok(null));
+
+    const { rerender } = renderHook(
+      ({ online }) => {
+        mockOnline = online;
+        return useNoteRemoteSync("10-01-2026", repository, {
+          onRemoteUpdate,
+          localContent: "",
+          hasLocalEdits: false,
+          isLocalReady: true,
+        });
+      },
+      { initialProps: { online: true } },
+    );
+
+    // Wait for first refresh attempt (returns null → REFRESH_SKIPPED, no markRefreshed)
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(1),
+    );
+    expect(onRemoteUpdate).not.toHaveBeenCalled();
+
+    // Second attempt returns real content
+    (repository.refreshNote as jest.Mock).mockResolvedValueOnce(
+      ok({ date: "10-01-2026", content: "remote-content" }),
+    );
+
+    // Toggle online off then on to trigger INPUTS_CHANGED
+    rerender({ online: false });
+    rerender({ online: true });
+
+    // Should retry because hasRefreshedForDate was NOT set
+    await waitFor(() =>
+      expect(repository.refreshNote).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(onRemoteUpdate).toHaveBeenCalledWith("remote-content"),
+    );
   });
 
   it("does not auto-retry on INPUTS_CHANGED after successful refresh", async () => {

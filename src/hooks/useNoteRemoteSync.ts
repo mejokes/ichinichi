@@ -88,6 +88,7 @@ type RemoteSyncEvent =
   | { type: "REMOTE_CACHE_READY"; date: string; hasRemote: boolean }
   | { type: "REMOTE_REFRESHED"; content: string }
   | { type: "REFRESH_DONE" }
+  | { type: "REFRESH_SKIPPED" }
   | { type: "CHECK_DONE" }
   | { type: "CLEAR_PENDING_REMOTE" }
   | { type: "FORCE_REFRESH" };
@@ -184,20 +185,20 @@ const remoteRefresh = fromCallback(
 
         const remoteNote = unwrapRefreshResult(remoteResult);
         if (!remoteNote) {
-          sendBack({ type: "REFRESH_DONE" });
+          sendBack({ type: "REFRESH_SKIPPED" });
           return;
         }
 
         if (hasPendingOps(input.repository)) {
           const hasPending = await input.repository.hasPendingOp(input.date);
           if (hasPending) {
-            if (!cancelled) sendBack({ type: "REFRESH_DONE" });
+            if (!cancelled) sendBack({ type: "REFRESH_SKIPPED" });
             return;
           }
         }
 
         if (input.hasLocalEdits) {
-          sendBack({ type: "REFRESH_DONE" });
+          sendBack({ type: "REFRESH_SKIPPED" });
           return;
         }
 
@@ -209,7 +210,7 @@ const remoteRefresh = fromCallback(
         }
       } catch (error) {
         console.error("Failed to refresh note from remote:", error);
-        if (!cancelled) sendBack({ type: "REFRESH_DONE" });
+        if (!cancelled) sendBack({ type: "REFRESH_SKIPPED" });
       }
     };
 
@@ -379,6 +380,9 @@ const remoteSyncMachine = setup({
         REFRESH_DONE: {
           target: "idle",
           actions: "markRefreshed",
+        },
+        REFRESH_SKIPPED: {
+          target: "idle",
         },
         INPUTS_CHANGED: {
           target: "decide",
