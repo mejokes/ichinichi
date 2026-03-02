@@ -34,8 +34,6 @@ const REFRESH_DATES_COOLDOWN_MS = 2000;
 
 export interface UnifiedSyncedNoteEnvelopeRepository {
   sync(): Promise<Result<SyncStatus, SyncError>>;
-  getSyncStatus(): SyncStatus;
-  onSyncStatusChange(callback: (status: SyncStatus) => void): () => void;
   getEnvelope(date: string): Promise<NoteEnvelope | null>;
   refreshEnvelope(date: string): Promise<NoteEnvelope | null>;
   hasPendingOp(date: string): Promise<boolean>;
@@ -113,13 +111,6 @@ export function createUnifiedSyncedNoteEnvelopeRepository(
   clock: Clock,
   syncStateStore: SyncStateStore,
 ): UnifiedSyncedNoteEnvelopeRepository {
-  let syncStatus: SyncStatus = SyncStatus.Idle;
-  const listeners = new Set<(status: SyncStatus) => void>();
-
-  const setSyncStatus = (status: SyncStatus) => {
-    syncStatus = status;
-    listeners.forEach((cb) => cb(status));
-  };
 
   const pushUpsert = async (
     record: NoteRecord,
@@ -300,11 +291,8 @@ export function createUnifiedSyncedNoteEnvelopeRepository(
 
   const sync = async (): Promise<Result<SyncStatus, SyncError>> => {
     if (!connectivity.isOnline()) {
-      setSyncStatus(SyncStatus.Offline);
       return ok(SyncStatus.Offline);
     }
-
-    setSyncStatus(SyncStatus.Syncing);
 
     try {
       const states = await getAllNoteEnvelopeStates();
@@ -346,12 +334,10 @@ export function createUnifiedSyncedNoteEnvelopeRepository(
         unwrapOrThrow(setResult);
       }
 
-      setSyncStatus(SyncStatus.Synced);
       return ok(SyncStatus.Synced);
     } catch (error) {
       const syncError = toUnknownSyncError(error);
       console.error("Sync error:", syncError);
-      setSyncStatus(SyncStatus.Error);
       return err(syncError);
     }
   };
@@ -561,12 +547,5 @@ export function createUnifiedSyncedNoteEnvelopeRepository(
       return await hasRemoteDate(date);
     },
     sync,
-    getSyncStatus(): SyncStatus {
-      return syncStatus;
-    },
-    onSyncStatusChange(callback: (status: SyncStatus) => void): () => void {
-      listeners.add(callback);
-      return () => listeners.delete(callback);
-    },
   };
 }

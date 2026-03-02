@@ -9,8 +9,6 @@ import type { UnifiedSyncedNoteEnvelopeRepository } from "../../storage/unifiedS
 
 export interface UnifiedSyncedNoteRepository extends NoteRepository {
   sync(): Promise<Result<SyncStatus, SyncError>>;
-  getSyncStatus(): SyncStatus;
-  onSyncStatusChange(callback: (status: SyncStatus) => void): () => void;
   getAllDatesForYear(year: number): Promise<Result<string[], RepositoryError>>;
   getAllLocalDates(): Promise<Result<string[], RepositoryError>>;
   getAllLocalDatesForYear(year: number): Promise<Result<string[], RepositoryError>>;
@@ -184,7 +182,5 @@ export function createHydratingSyncedNoteRepository(
     },
 
     sync: envelopeRepo.sync,
-    getSyncStatus: envelopeRepo.getSyncStatus,
-    onSyncStatusChange: envelopeRepo.onSyncStatusChange,
   };
 }
