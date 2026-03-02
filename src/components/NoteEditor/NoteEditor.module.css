@@ -107,6 +107,10 @@
   animation-delay: 100ms;
 }
 
+.savingError {
+  color: var(--color-error, #ef4444);
+}
+
 .close {
   flex-shrink: 0;
   width: 56px;

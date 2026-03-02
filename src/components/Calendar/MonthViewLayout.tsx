@@ -29,6 +29,7 @@ interface MonthViewLayoutProps {
   isDecrypting: boolean;
   isContentReady: boolean;
   isOfflineStub: boolean;
+  noteError?: Error | null;
   habits?: HabitValues;
   onHabitChange?: (habits: HabitValues) => void;
 }
@@ -93,6 +94,7 @@ export function MonthViewLayout({
   isDecrypting,
   isContentReady,
   isOfflineStub,
+  noteError,
   habits,
   onHabitChange,
 }: MonthViewLayoutProps) {
@@ -157,6 +159,7 @@ export function MonthViewLayout({
               isContentReady={isContentReady}
               isOfflineStub={isOfflineStub}
               isBlurred={isBlurred}
+              error={noteError}
               habits={habits}
               onHabitChange={onHabitChange}
             />

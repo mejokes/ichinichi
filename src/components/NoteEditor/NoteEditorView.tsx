@@ -20,6 +20,7 @@ interface NoteEditorViewProps {
   isEditable: boolean;
   showReadonlyBadge: boolean;
   statusText: string | null;
+  isStatusError?: boolean;
   placeholderText: string;
   editorRef: RefObject<HTMLDivElement | null>;
   onInput?: (event: FormEvent<HTMLDivElement>) => void;
@@ -40,6 +41,7 @@ export function NoteEditorView({
   isEditable,
   showReadonlyBadge,
   statusText,
+  isStatusError = false,
   placeholderText,
   editorRef,
   onInput,
@@ -94,6 +96,7 @@ export function NoteEditorView({
         formattedDate={formattedDate}
         showReadonlyBadge={showReadonlyBadge}
         statusText={statusText}
+        isStatusError={isStatusError}
       />
       <div className={bodyClassName}>
         <NoteEditorContent

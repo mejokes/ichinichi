@@ -4,6 +4,7 @@ interface NoteEditorHeaderProps {
   formattedDate: string;
   showReadonlyBadge: boolean;
   statusText: string | null;
+  isStatusError?: boolean;
   onClose?: () => void;
 }
 
@@ -11,6 +12,7 @@ export function NoteEditorHeader({
   formattedDate,
   showReadonlyBadge,
   statusText,
+  isStatusError = false,
 }: NoteEditorHeaderProps) {
   return (
     <div className={styles.header}>
@@ -20,7 +22,11 @@ export function NoteEditorHeader({
           <span className={styles.readonlyBadge}>Read only</span>
         )}
         <span
-          className={[styles.saving, statusText ? styles.savingVisible : ""]
+          className={[
+            styles.saving,
+            statusText ? styles.savingVisible : "",
+            isStatusError ? styles.savingError : "",
+          ]
             .filter(Boolean)
             .join(" ")}
           aria-live="polite"

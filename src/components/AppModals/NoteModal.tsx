@@ -19,6 +19,7 @@ interface NoteModalProps {
   isDecrypting: boolean;
   isContentReady: boolean;
   isOfflineStub: boolean;
+  noteError?: Error | null;
   content: string;
   onChange: (content: string) => void;
   habits?: HabitValues;
@@ -41,6 +42,7 @@ export function NoteModal({
   isDecrypting,
   isContentReady,
   isOfflineStub,
+  noteError,
   content,
   onChange,
   habits,
@@ -112,6 +114,7 @@ export function NoteModal({
                 isDecrypting={isDecrypting}
                 isContentReady={isContentReady}
                 isOfflineStub={isOfflineStub}
+                error={noteError}
                 habits={habits}
                 onHabitChange={onHabitChange}
               />

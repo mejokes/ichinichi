@@ -22,6 +22,8 @@ export interface UseNoteContentReturn {
   isSaving: boolean;
   isContentReady: boolean;
   isOfflineStub: boolean;
+  /** Error from loading/decrypting the note (e.g. DecryptFailed) */
+  error: Error | null;
   /** Force a refresh from remote (used for realtime updates) */
   forceRefresh: () => void;
 }
@@ -272,6 +274,7 @@ export function useNoteContent(
     isSaving: local.isSaving,
     isContentReady: local.isReady,
     isOfflineStub,
+    error: local.error,
     forceRefresh: remote.forceRefresh,
   };
 }

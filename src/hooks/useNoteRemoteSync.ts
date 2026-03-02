@@ -166,6 +166,22 @@ const remoteRefresh = fromCallback(
         }
         const remoteResult = await input.repository.refreshNote(input.date);
         if (cancelled) return;
+
+        // Log when refreshNote returns an error (e.g. DecryptFailed) —
+        // unwrapRefreshResult converts these to null, hiding the failure.
+        if (
+          remoteResult &&
+          typeof remoteResult === "object" &&
+          "ok" in remoteResult &&
+          !remoteResult.ok
+        ) {
+          console.warn(
+            "refreshNote returned error for",
+            input.date,
+            remoteResult.error,
+          );
+        }
+
         const remoteNote = unwrapRefreshResult(remoteResult);
         if (!remoteNote) {
           sendBack({ type: "REFRESH_DONE" });

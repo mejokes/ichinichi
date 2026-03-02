@@ -59,6 +59,8 @@ export interface UseNoteRepositoryReturn {
   isDecrypting: boolean;
   isContentReady: boolean;
   isOfflineStub: boolean;
+  /** Error from loading/decrypting the note (e.g. DecryptFailed) */
+  noteError: Error | null;
   repositoryVersion: number;
   invalidateRepository: () => void;
 }
@@ -224,6 +226,7 @@ export function useNoteRepository({
     isSaving,
     isContentReady,
     isOfflineStub,
+    error: noteError,
     forceRefresh,
   } = useNoteContent(date, repository, hasNote, handleAfterSave);
 
@@ -281,6 +284,7 @@ export function useNoteRepository({
     isDecrypting,
     isContentReady,
     isOfflineStub,
+    noteError,
     repositoryVersion,
     invalidateRepository,
   };

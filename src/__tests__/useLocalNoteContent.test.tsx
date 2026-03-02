@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useLocalNoteContent } from "../hooks/useLocalNoteContent";
-import { ok } from "../domain/result";
+import { ok, err } from "../domain/result";
 import type { NoteRepository } from "../storage/noteRepository";
+import type { RepositoryError } from "../domain/errors";
 
 function createRepository(initialContent = ""): NoteRepository {
   return {
@@ -262,6 +263,29 @@ describe("useLocalNoteContent", () => {
     expect(result.current.habits).toEqual({
       "h1": { name: "Exercise", type: "text", order: 0, value: "" },
     });
+  });
+
+  it("surfaces DecryptFailed error from repository.get", async () => {
+    const decryptError: RepositoryError = {
+      type: "DecryptFailed",
+      message: "Failed to decrypt note",
+    };
+    const repository: NoteRepository = {
+      get: jest.fn().mockResolvedValue(err(decryptError)),
+      save: jest.fn().mockResolvedValue(ok(undefined)),
+      delete: jest.fn().mockResolvedValue(ok(undefined)),
+      getAllDates: jest.fn().mockResolvedValue(ok([])),
+    };
+
+    const { result } = renderHook(() =>
+      useLocalNoteContent("10-01-2026", repository),
+    );
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect(result.current.error!.message).toBe("Failed to decrypt note");
+    expect(result.current.content).toBe("");
   });
 
   it("flushes edits on visibilitychange to hidden", async () => {

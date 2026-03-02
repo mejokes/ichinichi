@@ -57,6 +57,7 @@ interface AppModalsViewProps {
     isDecrypting: boolean;
     isContentReady: boolean;
     isOfflineStub: boolean;
+    noteError?: Error | null;
     content: string;
     onChange: (content: string) => void;
     habits?: HabitValues;
@@ -132,6 +133,7 @@ export function AppModalsView({
         isDecrypting={noteModal.isDecrypting}
         isContentReady={noteModal.isContentReady}
         isOfflineStub={noteModal.isOfflineStub}
+        noteError={noteModal.noteError}
         content={noteModal.content}
         onChange={noteModal.onChange}
         habits={noteModal.habits}

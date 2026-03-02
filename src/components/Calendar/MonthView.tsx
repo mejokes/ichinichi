@@ -25,6 +25,7 @@ interface MonthViewProps {
   isDecrypting: boolean;
   isContentReady: boolean;
   isOfflineStub: boolean;
+  noteError?: Error | null;
   habits?: HabitValues;
   onHabitChange?: (habits: HabitValues) => void;
   // Sync props
@@ -55,6 +56,7 @@ export function MonthView({
   isDecrypting,
   isContentReady,
   isOfflineStub,
+  noteError,
   habits,
   onHabitChange,
   syncStatus,
@@ -130,6 +132,7 @@ export function MonthView({
         isDecrypting={isDecrypting}
         isContentReady={isContentReady}
         isOfflineStub={isOfflineStub}
+        noteError={noteError}
         habits={habits}
         onHabitChange={onHabitChange}
       />

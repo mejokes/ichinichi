@@ -28,6 +28,8 @@ interface NoteEditorProps {
   isOfflineStub?: boolean;
   /** True when note content should be blurred for privacy */
   isBlurred?: boolean;
+  /** Error from loading/decrypting the note */
+  error?: Error | null;
   habits?: HabitValues;
   onHabitChange?: (habits: HabitValues) => void;
 }
@@ -43,6 +45,7 @@ export function NoteEditor({
   isContentReady,
   isOfflineStub = false,
   isBlurred = false,
+  error,
   habits,
   onHabitChange,
 }: NoteEditorProps) {
@@ -58,11 +61,14 @@ export function NoteEditor({
   // - The useSavingIndicator hook says to show it (handles idle timer + minimum display), OR
   // - We're closing the modal and still have unsaved changes (hasEdits or isSaving)
   const shouldShowSaving = showSaving || (isClosing && (isSaving || hasEdits));
-  const statusText = isDecrypting
-    ? "Decrypting..."
-    : shouldShowSaving
-      ? "Saving..."
-      : null;
+  const hasError = !!error;
+  const statusText = hasError
+    ? "Unable to decrypt note"
+    : isDecrypting
+      ? "Decrypting..."
+      : shouldShowSaving
+        ? "Saving..."
+        : null;
   const placeholderText =
     !isContentReady || isDecrypting
       ? "Loading..."
@@ -188,6 +194,7 @@ export function NoteEditor({
         isEditable={isEditable}
         showReadonlyBadge={!canEdit}
         statusText={statusText}
+        isStatusError={hasError}
         placeholderText={placeholderText}
         editorRef={editorRef}
         onInput={handleInput}
