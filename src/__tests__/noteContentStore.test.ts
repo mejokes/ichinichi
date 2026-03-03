@@ -392,4 +392,28 @@ describe("noteContentStore", () => {
       jest.useRealTimers();
     });
   });
+
+  it("dispose racing with init does not prevent load", async () => {
+    const repository = createRepository("day one");
+    noteContentStore.getState().init("10-01-2026", repository);
+
+    await waitForStatus("ready");
+    expect(noteContentStore.getState().content).toBe("day one");
+
+    // Simulate what React does on dep change: fire-and-forget dispose, then init
+    (repository.get as jest.Mock).mockResolvedValue(
+      ok({
+        date: "11-01-2026",
+        content: "day two",
+        updatedAt: "2026-01-11T10:00:00.000Z",
+      }),
+    );
+
+    void noteContentStore.getState().dispose();
+    noteContentStore.getState().init("11-01-2026", repository);
+
+    await waitForStatus("ready");
+    expect(noteContentStore.getState().date).toBe("11-01-2026");
+    expect(noteContentStore.getState().content).toBe("day two");
+  });
 });

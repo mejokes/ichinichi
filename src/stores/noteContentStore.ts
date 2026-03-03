@@ -114,6 +114,7 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
 
   let _loadGeneration = 0;
   let _refreshGeneration = 0;
+  let _disposeGeneration = 0;
 
   const _clearSaveTimer = () => {
     const timer = get()._saveTimer;
@@ -261,6 +262,8 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
     afterSave: null,
 
     init: (date, repository, afterSave) => {
+      // Cancel any in-flight dispose to prevent it from clobbering this init
+      _disposeGeneration++;
       // Remove previous listener to avoid duplicates on re-init
       document.removeEventListener("visibilitychange", _handleVisibilityChange);
       document.addEventListener("visibilitychange", _handleVisibilityChange);
@@ -276,8 +279,12 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
     },
 
     dispose: async () => {
+      const disposeGen = ++_disposeGeneration;
       document.removeEventListener("visibilitychange", _handleVisibilityChange);
       await get().flushSave();
+      // If init() was called while we were flushing, abort — the new
+      // init owns the store now and our reset would clobber its state.
+      if (disposeGen !== _disposeGeneration) return;
       _loadGeneration++;
       _refreshGeneration++;
       set({
