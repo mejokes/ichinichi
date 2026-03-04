@@ -1,5 +1,5 @@
 import { parseDate } from "../../utils/date";
-import { getMoonPhaseEmoji } from "../../utils/moonPhase";
+import { getMoonPhaseEmoji, getMoonPhaseName } from "../../utils/moonPhase";
 import styles from "./NoteEditor.module.css";
 
 interface NoteEditorHeaderProps {
@@ -20,12 +20,13 @@ export function NoteEditorHeader({
 }: NoteEditorHeaderProps) {
   const parsed = parseDate(date);
   const moonEmoji = parsed ? getMoonPhaseEmoji(parsed) : "";
+  const moonTitle = parsed ? getMoonPhaseName(parsed) : "";
 
   return (
     <div className={styles.header}>
       <div className={styles.headerTitle}>
         <span className={styles.date}>
-          {moonEmoji && <><span className={styles.moonEmoji}>{moonEmoji}</span> </>}
+          {moonEmoji && <><span className={styles.moonEmoji} title={moonTitle}>{moonEmoji}</span> </>}
           {formattedDate}
         </span>
         {showReadonlyBadge && (
