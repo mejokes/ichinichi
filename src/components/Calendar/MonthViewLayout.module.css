@@ -84,6 +84,10 @@
 
 /* Large desktop: better proportions */
 @media (min-width: 1200px) {
+  .layout {
+    gap: var(--spacing-md);
+  }
+
   .monthGridPane {
     width: 40%;
     max-width: 550px;
