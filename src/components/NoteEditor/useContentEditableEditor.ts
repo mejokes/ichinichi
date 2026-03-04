@@ -7,11 +7,13 @@ import type {
 } from "react";
 import { handleKeyDown as hotkeyHandleKeyDown } from "../../services/editorHotkeys";
 import { applyTextTransforms } from "../../services/editorTextTransforms";
+import { applySectionColors } from "../../services/sectionColors";
 import { getTimestampLabel } from "../../services/timestampLabel";
 
 const TIMESTAMP_ATTR = "data-timestamp";
 const TIMESTAMP_LABEL_ATTR = "data-label";
 const ADDITION_WINDOW_MS = 10 * 60 * 1000;
+const SECTION_TYPE_RE = /^\+([a-z][a-z-]*)$/;
 
 interface ContentEditableOptions {
   content: string;
@@ -447,6 +449,7 @@ export function useContentEditableEditor({
     if (content === lastContentRef.current) {
       updateEmptyState();
       updateTimestampLabels(el);
+      applySectionColors(el);
       return;
     }
     const nextContent = content || "";
@@ -454,12 +457,14 @@ export function useContentEditableEditor({
       lastContentRef.current = nextContent;
       updateEmptyState();
       updateTimestampLabels(el);
+      applySectionColors(el);
       return;
     }
     el.innerHTML = nextContent;
     lastContentRef.current = nextContent;
     updateEmptyState();
     updateTimestampLabels(el);
+    applySectionColors(el);
   }, [content, updateEmptyState, updateTimestampLabels]);
 
   useEffect(() => {
@@ -521,6 +526,21 @@ export function useContentEditableEditor({
 
     // Apply text transforms (HR insertion, linkify) with cursor preservation
     applyTextTransforms(el);
+
+    // Apply section header colors
+    applySectionColors(el);
+
+    // Clean up stale section headers whose text no longer matches +typename
+    const sectionHeaders = el.querySelectorAll<HTMLElement>("[data-section-type]");
+    for (const header of sectionHeaders) {
+      const text = (header.textContent ?? "").trim();
+      if (!text.match(/^\+[a-z][a-z-]*$/)) {
+        header.removeAttribute("data-section-type");
+        for (let i = 0; i < 8; i++) {
+          header.classList.remove(`section-hue-${i}`);
+        }
+      }
+    }
 
     // Update pending HRs with weather using approximate location (no prompt needed)
     if (isWeatherEnabledRef.current && applyWeatherToEditor) {
@@ -755,9 +775,73 @@ export function useContentEditableEditor({
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (!isEditableRef.current) return;
 
+    // Section transform: +typename on Enter
+    if (event.key === "Enter" && !event.shiftKey) {
+      const el = editorRef.current;
+      if (el) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          let container: Node | null = range.startContainer;
+          if (container.nodeType === Node.TEXT_NODE) {
+            container = container.parentNode;
+          }
+          let block: HTMLElement | null = null;
+          let current: Node | null = container;
+          while (current && current !== el) {
+            if (
+              current instanceof HTMLElement &&
+              (current.tagName === "DIV" || current.tagName === "P")
+            ) {
+              block = current;
+              break;
+            }
+            current = current.parentNode;
+          }
+          if (block) {
+            const text = (block.textContent ?? "").trim();
+            const match = text.match(SECTION_TYPE_RE);
+            if (match) {
+              event.preventDefault();
+              const typeName = match[1];
+              block.setAttribute("data-section-type", typeName);
+              block.textContent = "+" + typeName;
+
+              const body = document.createElement("div");
+              body.appendChild(document.createElement("br"));
+              block.parentNode?.insertBefore(body, block.nextSibling);
+
+              applySectionColors(el);
+
+              const sel = window.getSelection();
+              if (sel) {
+                const r = document.createRange();
+                r.setStart(body, 0);
+                r.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(r);
+              }
+
+              const html = serializeEditorContent(el);
+              lastContentRef.current = html;
+              isLocalEditRef.current = true;
+              onChangeRef.current(html);
+              onUserInputRef.current?.();
+              return;
+            }
+          }
+        }
+      }
+    }
+
+    // Normalize Shift+Enter to insertLineBreak for cross-browser consistency
+    if (event.key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      document.execCommand("insertLineBreak");
+      return;
+    }
+
     // Delegate to hotkey service
-    // Note: We don't call handleInput() here because execCommand
-    // triggers an 'input' event which will call handleInput() automatically
     hotkeyHandleKeyDown(event.nativeEvent);
   }, []);
 
