@@ -3,7 +3,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 import { NavigationArrow } from "../NavigationArrow";
 import { NoteEditor } from "../NoteEditor";
 import { MonthGrid } from "./MonthGrid";
-import { PromptCard } from "./PromptCard";
+
 import styles from "./MonthViewLayout.module.css";
 
 const BLUR_INACTIVITY_MS = 2 * 60 * 1000; // 2 minutes
@@ -136,7 +136,6 @@ export function MonthViewLayout({
           />
         </div>
 
-        <PromptCard />
       </div>
 
       <div className={styles.editorPane}>
