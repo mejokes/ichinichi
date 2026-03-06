@@ -70,7 +70,6 @@
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
-  margin-right: -2rem;
 }
 
 .readonlyBadge {
@@ -79,6 +78,7 @@
   background-color: var(--color-surface);
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
+  white-space: nowrap;
 }
 
 .toolbar {
@@ -312,7 +312,7 @@
   height: 1px;
   background: var(--color-border);
   overflow: visible;
-  margin: var(--spacing-lg) calc(-1 * var(--spacing-xl));
+  margin: var(--spacing-lg) 0;
 }
 
 .content hr[data-timestamp][data-label]::before {
