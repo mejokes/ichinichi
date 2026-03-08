@@ -114,7 +114,7 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
   const _scheduleSave = () => {
     _clearSaveTimer();
     const timer = window.setTimeout(() => {
-      set({ _saveTimer: null });
+      set({ _saveTimer: null, isSaving: true });
       const promise = _doSave();
       set({ _savePromise: promise });
       void promise.finally(() => {
@@ -246,7 +246,7 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
       ) {
         return;
       }
-      set({ content, hasEdits: true, error: null, isSaving: true });
+      set({ content, hasEdits: true, error: null });
       _scheduleSave();
     },
 
@@ -257,6 +257,7 @@ export const noteContentStore = createStore<NoteContentState>()((set, get) => {
       if (_saveTimer !== null) {
         _clearSaveTimer();
         if (hasEdits) {
+          set({ isSaving: true });
           const promise = _doSave();
           set({ _savePromise: promise });
           await promise;

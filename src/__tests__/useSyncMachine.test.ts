@@ -110,10 +110,10 @@ describe("noteContentStore — hasEdits tracking", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     noteContentStore.getState().setContent("new content");
-    expect(noteContentStore.getState().isSaving).toBe(true);
+    expect(noteContentStore.getState().isSaving).toBe(false);
     expect(noteContentStore.getState().hasEdits).toBe(true);
 
-    // Flush triggers save
+    // Flush triggers save — isSaving becomes true
     const flushPromise = noteContentStore.getState().flushSave();
     expect(noteContentStore.getState().isSaving).toBe(true);
 

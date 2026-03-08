@@ -191,7 +191,7 @@ describe("noteContentStore", () => {
   });
 
   describe("isSaving / hasEdits tracking", () => {
-    it("sets isSaving=true and hasEdits=true when content is edited", async () => {
+    it("sets hasEdits=true immediately but isSaving=false until save fires", async () => {
       const repository = createRepository("");
       noteContentStore.getState().init("10-01-2026", repository);
 
@@ -200,7 +200,7 @@ describe("noteContentStore", () => {
       noteContentStore.getState().setContent("new content");
 
       expect(noteContentStore.getState().hasEdits).toBe(true);
-      expect(noteContentStore.getState().isSaving).toBe(true);
+      expect(noteContentStore.getState().isSaving).toBe(false);
     });
 
     it("does not set hasEdits when content matches current", async () => {

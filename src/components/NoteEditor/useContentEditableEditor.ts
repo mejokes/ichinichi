@@ -241,7 +241,14 @@ export function useContentEditableEditor({
         const timestamp = new Date(now).toISOString();
         const { hr } = createTimestampHr(timestamp);
         if (currentBlock && currentBlock !== el) {
-          currentBlock.parentNode?.insertBefore(hr, currentBlock);
+          // Walk backwards past section headers so HR goes before the section
+          let insertBefore: Element = currentBlock;
+          let prev = insertBefore.previousElementSibling;
+          while (prev?.hasAttribute("data-section-type")) {
+            insertBefore = prev;
+            prev = insertBefore.previousElementSibling;
+          }
+          insertBefore.parentNode?.insertBefore(hr, insertBefore);
         } else {
           el.insertBefore(hr, el.firstChild);
         }
@@ -276,9 +283,18 @@ export function useContentEditableEditor({
           if (currentBlock === el) {
             el.insertBefore(hr, el.firstChild);
           } else {
+            // Walk backwards past section header+body pairs so the HR
+            // is inserted before the section, not inside it.
+            let insertBefore: Element = currentBlock;
+            let prev = insertBefore.previousElementSibling;
+            while (prev?.hasAttribute("data-section-type")) {
+              insertBefore = prev;
+              prev = insertBefore.previousElementSibling;
+            }
+
             // Wrap any preceding inline content in a div before inserting hr
             const nodesToWrap: Node[] = [];
-            let node = currentBlock.previousSibling;
+            let node = insertBefore.previousSibling;
             while (node) {
               if (
                 node instanceof HTMLHRElement ||
@@ -298,8 +314,8 @@ export function useContentEditableEditor({
               }
             }
 
-            // Insert before the current block element
-            currentBlock.parentNode?.insertBefore(hr, currentBlock);
+            // Insert before the section header (or current block)
+            insertBefore.parentNode?.insertBefore(hr, insertBefore);
           }
 
           lastUserInputRef.current = now;

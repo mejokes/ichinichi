@@ -48,7 +48,7 @@ describe("Saving status data flow (noteContentStore)", () => {
     });
   }
 
-  it("noteContentStore exposes isSaving=true when content is edited", async () => {
+  it("noteContentStore exposes isSaving=false immediately after edit, true after idle delay", async () => {
     const repository = createTestRepository();
 
     noteContentStore.getState().init("16-01-2026", repository);
@@ -58,7 +58,7 @@ describe("Saving status data flow (noteContentStore)", () => {
 
     noteContentStore.getState().setContent("modified content");
 
-    expect(noteContentStore.getState().isSaving).toBe(true);
+    expect(noteContentStore.getState().isSaving).toBe(false);
     expect(noteContentStore.getState().hasEdits).toBe(true);
   });
 
@@ -75,7 +75,7 @@ describe("Saving status data flow (noteContentStore)", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     noteContentStore.getState().setContent("modified content");
-    expect(noteContentStore.getState().isSaving).toBe(true);
+    expect(noteContentStore.getState().isSaving).toBe(false);
 
     const flushPromise = noteContentStore.getState().flushSave();
 
