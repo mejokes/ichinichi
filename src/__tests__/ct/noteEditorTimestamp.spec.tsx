@@ -103,6 +103,54 @@ test.describe("Timestamp HR insertion", () => {
     );
   });
 
+  test("skips automatic HR when editing block directly after existing HR", async ({
+    mount,
+    page,
+  }) => {
+    const oldTimestamp = "2026-01-16T08:00:00.000Z";
+    // >10min later to trigger automatic timestamp insertion
+    const startTime = new Date("2026-01-16T10:15:00.000Z");
+    await page.clock.install({ time: startTime });
+
+    const editor = await mount(
+      <EditorHarness
+        content={`<hr data-timestamp="${oldTimestamp}" contenteditable="false"><p>some text</p>`}
+      />,
+    );
+
+    // Edit in the paragraph directly after the HR
+    await editor.locator("p").first().click();
+    await page.keyboard.type("x");
+
+    // Should still only have the original HR (no adjacent duplicate)
+    await expect(editor.locator("hr[data-timestamp]")).toHaveCount(1);
+  });
+
+  test("skips automatic HR when first child is already an HR", async ({
+    mount,
+    page,
+  }) => {
+    const oldTimestamp = "2026-01-16T08:00:00.000Z";
+    // >10min later to trigger automatic timestamp insertion
+    const startTime = new Date("2026-01-16T10:15:00.000Z");
+    await page.clock.install({ time: startTime });
+
+    // Content starts with an HR — editing at root level would
+    // try to insert before firstChild (the existing HR)
+    const editor = await mount(
+      <EditorHarness
+        content={`<hr data-timestamp="${oldTimestamp}" contenteditable="false"><p>some text</p><p>more text</p>`}
+      />,
+    );
+
+    // Edit the second paragraph — triggers block-change path
+    await editor.locator("p").last().click();
+    await page.keyboard.type("x");
+
+    // Should still only have the original HR (no adjacent duplicate)
+    await expect(editor.locator("hr[data-timestamp]")).toHaveCount(1);
+  });
+
   test("does not mark editor empty when only HR remains", async ({
     mount,
   }) => {

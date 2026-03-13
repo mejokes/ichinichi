@@ -152,6 +152,41 @@ function serializeEditorContent(editor: HTMLElement): string {
   return clone.innerHTML;
 }
 
+/**
+ * Check if inserting an HR before `ref` would place it adjacent
+ * to an existing HR (skipping empty text nodes and BRs).
+ */
+function wouldBeAdjacentToHr(ref: Node): boolean {
+  let prev: Node | null = ref.previousSibling;
+  while (prev) {
+    if (prev.nodeName === "HR") return true;
+    if (
+      prev.nodeName === "BR" ||
+      (prev.nodeType === Node.TEXT_NODE &&
+        (prev.textContent ?? "").trim() === "")
+    ) {
+      prev = prev.previousSibling;
+      continue;
+    }
+    break;
+  }
+  // Also check if ref itself or its next significant sibling is HR
+  let next: Node | null = ref;
+  while (next) {
+    if (next.nodeName === "HR") return true;
+    if (
+      next.nodeName === "BR" ||
+      (next.nodeType === Node.TEXT_NODE &&
+        (next.textContent ?? "").trim() === "")
+    ) {
+      next = next.nextSibling;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
 function getLastEditTimestamp(element: HTMLElement): number | null {
   // Check for timestamp HR elements
   const hrs = Array.from(
@@ -270,8 +305,10 @@ export function useContentEditableEditor({
             insertBefore = prev;
             prev = insertBefore.previousElementSibling;
           }
-          insertBefore.parentNode?.insertBefore(hr, insertBefore);
-        } else {
+          if (!wouldBeAdjacentToHr(insertBefore)) {
+            insertBefore.parentNode?.insertBefore(hr, insertBefore);
+          }
+        } else if (!el.firstChild || !wouldBeAdjacentToHr(el.firstChild)) {
           el.insertBefore(hr, el.firstChild);
         }
         lastUserInputRef.current = now;
@@ -290,15 +327,11 @@ export function useContentEditableEditor({
         !hasInsertedTimestampRef.current &&
         (lastEdit === null || now - lastEdit > ADDITION_WINDOW_MS)
       ) {
-        // Check if this block already has a timestamp HR immediately before it
-        // (i.e., we're editing an existing timestamped block, not creating new content)
-        const prevSibling =
-          currentBlock === el ? el.firstChild : currentBlock.previousSibling;
-        const hasPrecedingTimestamp =
-          prevSibling instanceof HTMLHRElement &&
-          prevSibling.hasAttribute(TIMESTAMP_ATTR);
+        // Check if inserting HR here would place it adjacent to an existing HR
+        const insertRef =
+          currentBlock === el ? el.firstChild : currentBlock;
 
-        if (!hasPrecedingTimestamp) {
+        if (insertRef && !wouldBeAdjacentToHr(insertRef)) {
           const timestamp = new Date(now).toISOString();
           const { hr } = createTimestampHr(timestamp);
 
@@ -337,7 +370,9 @@ export function useContentEditableEditor({
             }
 
             // Insert before the section header (or current block)
-            insertBefore.parentNode?.insertBefore(hr, insertBefore);
+            if (!wouldBeAdjacentToHr(insertBefore)) {
+              insertBefore.parentNode?.insertBefore(hr, insertBefore);
+            }
           }
 
           lastUserInputRef.current = now;
