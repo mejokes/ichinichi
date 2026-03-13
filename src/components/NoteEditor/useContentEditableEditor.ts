@@ -7,6 +7,10 @@ import type {
 } from "react";
 import { handleKeyDown as hotkeyHandleKeyDown } from "../../services/editorHotkeys";
 import { applyTextTransforms } from "../../services/editorTextTransforms";
+import {
+  saveResilientCursorPosition,
+  restoreResilientCursorPosition,
+} from "../../services/editorTextTransforms/cursor";
 import { applySectionColors } from "../../services/sectionColors";
 import { getTimestampLabel } from "../../services/timestampLabel";
 
@@ -129,8 +133,23 @@ function createTimestampHr(timestamp: string): { hr: HTMLHRElement } {
   return { hr };
 }
 
+/**
+ * Serialize editor DOM to canonical HTML that survives sanitizeHtml().
+ * Strips derived/decorative attributes that the sanitizer would remove,
+ * so the stored content matches what comes back after encrypt/decrypt.
+ */
 function serializeEditorContent(editor: HTMLElement): string {
-  return editor.innerHTML;
+  const clone = editor.cloneNode(true) as HTMLElement;
+  for (const el of clone.querySelectorAll("[class]")) {
+    el.removeAttribute("class");
+  }
+  for (const img of clone.querySelectorAll("img[data-image-id]")) {
+    img.removeAttribute("src");
+  }
+  for (const el of clone.querySelectorAll("[style]")) {
+    el.removeAttribute("style");
+  }
+  return clone.innerHTML;
 }
 
 function getLastEditTimestamp(element: HTMLElement): number | null {
@@ -482,16 +501,19 @@ export function useContentEditableEditor({
       applySectionColors(el);
       return;
     }
+    // Save cursor as a path so it survives DOM replacement
+    const savedCursor = saveResilientCursorPosition(el);
     // Guard against synthetic input/beforeinput events that mobile
     // browsers may fire when innerHTML is set programmatically.
     isProgrammaticUpdateRef.current = true;
-    el.innerHTML = nextContent; // Content is from our own store, not user input
+    el.innerHTML = nextContent; // Sanitized content from our own store
     lastContentRef.current = nextContent;
     // Reset stale DOM ref — old nodes are detached after innerHTML set
     lastEditedBlockRef.current = null;
     updateEmptyState();
     updateTimestampLabels(el);
     applySectionColors(el);
+    restoreResilientCursorPosition(el, savedCursor);
     isProgrammaticUpdateRef.current = false;
   }, [content, updateEmptyState, updateTimestampLabels]);
 
