@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
 }
 
 .headerLeft {

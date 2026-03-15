@@ -66,13 +66,12 @@
 
 .weatherLabel {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  color: color-mix(in srgb, var(--color-text) 40%, var(--color-text-muted));
   white-space: nowrap;
   flex-shrink: 0;
-  align-self: flex-end;
 }
 
-@media (min-width: 1270px) {
+@media (min-width: 1300px) {
   .weatherLabel {
     margin-left: auto;
   }
