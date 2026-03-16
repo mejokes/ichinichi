@@ -99,30 +99,48 @@ export const test = base.extend<{ helpers: TestHelpers }>({
 
         // Clear all storage
         await page.evaluate(async () => {
-          // Clear known IndexedDB databases used by the app
-          const knownDatabases = [
-            'dailynotes-unified',
-            'dailynotes-vault',
-            'dailynotes-local',
-            'dailynotes-synced',
-          ];
-
-          // Delete databases and wait for completion
-          const deletePromises = knownDatabases.map(dbName => {
-            return new Promise<void>((resolve) => {
-              const request = indexedDB.deleteDatabase(dbName);
-              request.onsuccess = () => resolve();
-              request.onerror = () => resolve(); // Resolve even on error
-              request.onblocked = () => resolve(); // Resolve if blocked
-            });
-          });
-
-          await Promise.all(deletePromises);
-
-          // Clear localStorage
+          // Clear localStorage and sessionStorage first
           localStorage.clear();
-          // Clear sessionStorage
           sessionStorage.clear();
+
+          // Clear object stores instead of deleteDatabase to avoid race
+          // conditions: deleteDatabase gets blocked by open connections,
+          // then races with the next page load's indexedDB.open calls,
+          // causing 3s timeouts that break vault auto-unlock.
+          const clearDatabase = (dbName: string): Promise<void> =>
+            new Promise((resolve) => {
+              const timeout = setTimeout(resolve, 3000);
+              try {
+                const request = indexedDB.open(dbName);
+                request.onsuccess = () => {
+                  clearTimeout(timeout);
+                  const db = request.result;
+                  try {
+                    const names = Array.from(db.objectStoreNames);
+                    if (names.length === 0) {
+                      db.close();
+                      resolve();
+                      return;
+                    }
+                    const tx = db.transaction(names, 'readwrite');
+                    names.forEach(n => tx.objectStore(n).clear());
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                    tx.onerror = () => { db.close(); resolve(); };
+                  } catch { db.close(); resolve(); }
+                };
+                request.onerror = () => {
+                  clearTimeout(timeout);
+                  resolve();
+                };
+              } catch { clearTimeout(timeout); resolve(); }
+            });
+
+          await Promise.all([
+            clearDatabase('dailynotes-unified'),
+            clearDatabase('dailynotes-vault'),
+            clearDatabase('dailynotes-local'),
+            clearDatabase('dailynotes-synced'),
+          ]);
         });
 
         // Navigate to app again (not reload) to start fresh with cleared storage
@@ -239,7 +257,7 @@ export const test = base.extend<{ helpers: TestHelpers }>({
       typeInEditor: async (content: string) => {
         const editor = page.locator('[data-note-editor="content"]');
         await editor.click();
-        await page.keyboard.press('Meta+a');
+        await page.keyboard.press('ControlOrMeta+a');
         await page.keyboard.type(content);
       },
 
