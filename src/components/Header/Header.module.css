@@ -100,7 +100,7 @@
     z-index: 10;
     flex-wrap: wrap;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-sm);
     padding-top: var(--spacing-md);
     padding-bottom: var(--spacing-md);
   }
