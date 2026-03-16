@@ -54,35 +54,37 @@ export function Calendar({
       html.style.scrollPaddingTop = `${header.offsetHeight}px`;
     }
 
-    const gridEl = gridRef.current;
-    if (gridEl) {
-      // Always scroll to top when year changes on mobile
-      window.scrollTo(0, 0);
+    // Defer scroll until after layout, then enable snap
+    const rafId = requestAnimationFrame(() => {
+      const gridEl = gridRef.current;
+      if (gridEl) {
+        window.scrollTo(0, 0);
 
-      // On first load of current year, scroll to current month
-      if (!hasAutoScrolledRef.current) {
-        hasAutoScrolledRef.current = true;
-        const now = new Date();
-        if (year === now.getFullYear() && now.getMonth() > 0) {
-          const currentMonthEl = gridEl.querySelector(
-            '[data-current-month="true"]',
-          );
-          if (currentMonthEl instanceof HTMLElement) {
-            currentMonthEl.scrollIntoView({
-              block: "start",
-              behavior: "instant",
-            });
+        if (!hasAutoScrolledRef.current) {
+          hasAutoScrolledRef.current = true;
+          const now = new Date();
+          if (year === now.getFullYear() && now.getMonth() > 0) {
+            const currentMonthEl = gridEl.querySelector(
+              '[data-current-month="true"]',
+            );
+            if (currentMonthEl instanceof HTMLElement) {
+              currentMonthEl.scrollIntoView({
+                block: "start",
+                behavior: "instant",
+              });
+            }
           }
         }
       }
-    }
 
-    // Enable snap after scroll position is set
-    requestAnimationFrame(() => {
-      html.dataset.scrollSnap = "";
+      // Enable snap after scroll position is set
+      requestAnimationFrame(() => {
+        html.dataset.scrollSnap = "";
+      });
     });
 
     return () => {
+      cancelAnimationFrame(rafId);
       delete html.dataset.scrollSnap;
       html.style.scrollPaddingTop = "";
     };
