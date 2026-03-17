@@ -21,7 +21,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:seed": "playwright test tests/seed-cloud-notes.spec.ts --project=chromium --headed",
     "prepare": "husky install",
-    "deploy": "yarn build && npx wrangler pages deploy ./dist --project-name ichinichi"
+    "deploy": "yarn build && wrangler pages deploy",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build"
   },
